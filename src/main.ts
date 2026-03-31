@@ -35,7 +35,7 @@ const ALL_FIELDS: FieldConfig[] = [
   { key: 'price', canonical: 'price', label: 'Harga' },
   { key: 'rating', canonical: 'rating', label: 'Rating' },
   { key: 'location', canonical: 'location', label: 'Lokasi' },
-  { key: 'shipping', canonical: 'shipping', label: 'Ongkir' },
+  // { key: 'shipping', canonical: 'shipping', label: 'Ongkir' }, // Comment out / disable until stable
   { key: 'img', canonical: 'image_url', label: 'Gambar' },
   { key: 'link', canonical: 'url', label: 'URL' },
 ]
@@ -245,6 +245,13 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         </div>
 
       </div>
+
+      <!-- Konfirmasi Tutup Config -->
+      <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+        <button type="button" id="config-close-btn" class="px-5 py-1.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 text-sm font-semibold rounded-md transition-all">
+          Selesai
+        </button>
+      </div>
     </div>
 
     <!-- Results meta -->
@@ -270,6 +277,7 @@ const sortSelectEl = document.getElementById('sort-select-container') as HTMLEle
 const sortOrderEl = document.getElementById('sort-order-container') as HTMLElement
 const configToggleBtn = document.getElementById('config-toggle') as HTMLButtonElement
 const configPanel = document.getElementById('config-panel') as HTMLDivElement
+const configCloseBtn = document.getElementById('config-close-btn') as HTMLButtonElement
 const fieldToggles = document.getElementById('field-toggles') as HTMLDivElement
 const viewGridBtn = document.getElementById('view-grid') as HTMLButtonElement
 const viewTableBtn = document.getElementById('view-table') as HTMLButtonElement
@@ -293,7 +301,6 @@ const sortOrderSelect = new CustomSelect(sortOrderEl, [
 
 // ─── Config Panel ─────────────────────────────────────────────────────────────
 
-// Toggle panel
 configToggleBtn.addEventListener('click', (e) => {
   e.stopPropagation()
   state.configOpen = !state.configOpen
@@ -301,12 +308,12 @@ configToggleBtn.addEventListener('click', (e) => {
   configToggleBtn.classList.toggle('border-orange-400', state.configOpen)
   configToggleBtn.classList.toggle('text-orange-600', state.configOpen)
 })
-document.addEventListener('click', (e) => {
-  if (!configPanel.contains(e.target as Node) && e.target !== configToggleBtn) {
-    state.configOpen = false
-    configPanel.classList.add('hidden')
-    configToggleBtn.classList.remove('border-orange-400', 'text-orange-600')
-  }
+
+// Tombol Selesai untuk menutup Config Panel
+configCloseBtn.addEventListener('click', () => {
+  state.configOpen = false
+  configPanel.classList.add('hidden')
+  configToggleBtn.classList.remove('border-orange-400', 'text-orange-600')
 })
 
 // View mode buttons
