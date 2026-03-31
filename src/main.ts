@@ -69,6 +69,8 @@ const state = {
   localQuery: '',
   localSortKey: null as string | null,
   localSortDir: 'asc' as 'asc' | 'desc',
+  currentPage: 1,
+  pageSize: 10,
 }
 
 // ─── Custom Select Component ───────────────────────────────────────────────────
@@ -316,12 +318,26 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <svg class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-        <input type="text" id="local-search" placeholder="Filter hasil..." class="w-full sm:w-60 pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-700 outline-none focus:border-orange-400 focus:bg-white transition-colors"/>
+        <input type="text" id="local-search" placeholder="Filter hasil..." class="w-full sm:w-60 pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs text-gray-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/20 shadow-sm transition-all"/>
       </div>
     </div>
 
     <!-- Results area -->
     <div id="results" class="mt-3"></div>
+
+    <!-- Pagination Controls -->
+    <div id="pagination-controls" class="mt-5 mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 hidden w-full">
+      <div class="flex justify-between items-center w-full sm:w-auto gap-3 sm:gap-4">
+        <div id="page-size-container" class="w-[120px] sm:w-32 z-20"></div>
+        <span id="page-info" class="text-[11px] sm:text-xs text-gray-500 font-medium"></span>
+      </div>
+      
+      <div class="w-full sm:w-auto flex items-center bg-white border border-gray-200 p-0.5 rounded-md shadow-sm">
+        <button id="page-prev" class="flex-1 sm:flex-none px-4 py-1.5 rounded text-xs font-semibold transition-all select-none text-center">Prev</button>
+        <div id="page-numbers" class="flex items-center justify-center min-w-[3.5rem] px-2 text-xs text-gray-500 font-medium select-none"></div>
+        <button id="page-next" class="flex-1 sm:flex-none px-4 py-1.5 rounded text-xs font-semibold transition-all select-none text-center">Next</button>
+      </div>
+    </div>
 
   </div>
 
@@ -346,6 +362,12 @@ const resultsDiv = document.getElementById('results') as HTMLDivElement
 const resultsMeta = document.getElementById('results-meta') as HTMLDivElement
 const resultsCount = document.getElementById('results-count') as HTMLParagraphElement
 const localSearchInput = document.getElementById('local-search') as HTMLInputElement
+const paginationControls = document.getElementById('pagination-controls') as HTMLDivElement
+const pageSizeContainer = document.getElementById('page-size-container') as HTMLDivElement
+const pageInfo = document.getElementById('page-info') as HTMLSpanElement
+const pagePrev = document.getElementById('page-prev') as HTMLButtonElement
+const pageNext = document.getElementById('page-next') as HTMLButtonElement
+const pageNumbers = document.getElementById('page-numbers') as HTMLDivElement
 const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement
 const spinner = document.getElementById('loading-spinner') as HTMLElement
 const btnLabel = document.getElementById('btn-label') as HTMLElement
@@ -378,7 +400,7 @@ function startEtaCountdown(sec: number) {
   if (etaInterval) window.clearInterval(etaInterval)
   currentEtaSec = sec
   updateEtaUI()
-  
+
   etaInterval = window.setInterval(() => {
     if (currentEtaSec > 0) {
       currentEtaSec--
@@ -411,6 +433,30 @@ const sortOrderSelect = new CustomSelect(sortOrderEl, [
   { value: 'asc', label: '↑ Termurah' },
   { value: 'desc', label: '↓ Termahal' },
 ], 'asc', () => { })
+
+// ─── Pagination Select & Bindings ─────────────────────────────────────────────
+new CustomSelect(pageSizeContainer, [
+  { value: '10', label: '10 baris' },
+  { value: '20', label: '20 baris' },
+  { value: '50', label: '50 baris' },
+  { value: '100', label: '100 baris' },
+], '10', (val) => {
+  state.pageSize = parseInt(val, 10);
+  state.currentPage = 1;
+  triggerRender();
+})
+
+pagePrev.addEventListener('click', () => {
+  if (pagePrev.classList.contains('cursor-not-allowed')) return;
+  state.currentPage--;
+  triggerRender();
+});
+
+pageNext.addEventListener('click', () => {
+  if (pageNext.classList.contains('cursor-not-allowed')) return;
+  state.currentPage++;
+  triggerRender();
+});
 
 // ─── Config Panel ─────────────────────────────────────────────────────────────
 
@@ -445,20 +491,21 @@ viewTableBtn.addEventListener('click', () => setViewMode('table'))
 // Filter / Sort Listeners
 localSearchInput.addEventListener('input', (e) => {
   state.localQuery = (e.target as HTMLInputElement).value
+  state.currentPage = 1 // Reset pagination upon search
   triggerRender()
 })
 
 resultsDiv.addEventListener('click', (e) => {
   const th = (e.target as HTMLElement).closest('th[data-sort]') as HTMLElement
   if (!th) return
-  
+
   const key = th.dataset.sort!
   if (state.localSortKey === key) {
-     if (state.localSortDir === 'asc') state.localSortDir = 'desc'
-     else state.localSortKey = null
+    if (state.localSortDir === 'asc') state.localSortDir = 'desc'
+    else state.localSortKey = null
   } else {
-     state.localSortKey = key
-     state.localSortDir = 'asc'
+    state.localSortKey = key
+    state.localSortDir = 'asc'
   }
   triggerRender()
 })
@@ -513,7 +560,7 @@ async function loadHistory() {
     <svg class="animate-spin w-5 h-5 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
     Memuat riwayat...
   </div>`
-  
+
   try {
     const baseUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
     const res = await fetch(`${baseUrl}/history`)
@@ -541,14 +588,14 @@ async function loadHistory() {
           </div>
         `
       }).join('')
-      
+
       Array.from(historyContent.children).forEach(el => {
         el.addEventListener('click', () => {
           const filename = el.getAttribute('data-filename')
           if (filename) loadHistoryDetail(filename)
         })
       })
-      
+
     } else {
       historyContent.innerHTML = `<div class="text-center text-gray-400 text-xs py-8">Belum ada riwayat.</div>`
     }
@@ -560,45 +607,45 @@ async function loadHistory() {
 
 async function loadHistoryDetail(filename: string) {
   closeSidebar()
-  
+
   if (etaInterval) window.clearInterval(etaInterval)
   toastDiv.classList.add('translate-y-[200%]')
-  
+
   btnLabel.textContent = 'Memuat riwayat...'
   submitBtn.disabled = true
   spinner.classList.remove('hidden')
   resultsDiv.innerHTML = ''
   resultsMeta.classList.add('hidden')
-  
+
   try {
     const baseUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
     const res = await fetch(`${baseUrl}/history/${filename}`)
     const json = await res.json() as ScrapeResponse
-    
+
     if (json.status === 'success') {
       const keywordInput = document.getElementById('keyword') as HTMLInputElement
       keywordInput.value = json.keyword || ''
-      
+
       if (json.data && json.data.length > 0) {
         ; (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData = json.data
         state.localQuery = ''
         state.localSortKey = null
         localSearchInput.value = ''
-        
+
         triggerRender()
         resultsMeta.className = 'mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'
 
         let timeStr = ''
         if (json.total_time !== undefined) {
-           timeStr = ` · diambil dalam ${formatTime(json.total_time)}`
+          timeStr = ` · diambil dalam ${formatTime(json.total_time)}`
         }
         if (json.scraped_at) {
-           const dt = new Date(json.scraped_at)
-           const formattedDate = dt.toLocaleString('id-ID', {
-              day: '2-digit', month: 'short', year: 'numeric',
-              hour: '2-digit', minute: '2-digit'
-           }).replace(/\./g, ':')
-           timeStr += ` pada ${formattedDate}`
+          const dt = new Date(json.scraped_at)
+          const formattedDate = dt.toLocaleString('id-ID', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          }).replace(/\./g, ':')
+          timeStr += ` pada ${formattedDate}`
         }
         resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"${timeStr}`
       } else {
@@ -670,7 +717,7 @@ form.addEventListener('submit', async (e) => {
       toastStatus.textContent = msg.status
       toastFill.style.width = `${msg.percent}%`
       toastPct.textContent = `${msg.percent}%`
-      
+
       if (msg.eta && !msg.eta.includes('Menghitung')) {
         const sec = parseInt(msg.eta.replace('s', '')) || 0
         if (sec > 0) startEtaCountdown(sec)
@@ -709,21 +756,21 @@ form.addEventListener('submit', async (e) => {
             state.localQuery = ''
             state.localSortKey = null
             localSearchInput.value = ''
-            
+
             triggerRender()
             resultsMeta.className = 'mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'
 
             let timeStr = ''
             if (json.total_time !== undefined) {
-               timeStr = ` · diambil dalam ${formatTime(json.total_time)}`
+              timeStr = ` · diambil dalam ${formatTime(json.total_time)}`
             }
             if (json.scraped_at) {
-               const dt = new Date(json.scraped_at)
-               const formattedDate = dt.toLocaleString('id-ID', {
-                  day: '2-digit', month: 'short', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-               }).replace(/\./g, ':')
-               timeStr += ` pada ${formattedDate}`
+              const dt = new Date(json.scraped_at)
+              const formattedDate = dt.toLocaleString('id-ID', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+              }).replace(/\./g, ':')
+              timeStr += ` pada ${formattedDate}`
             }
             resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"${timeStr}`
           } else {
@@ -804,14 +851,62 @@ function triggerRender() {
     });
   }
 
+  // Apply Pagination
+  const totalItems = data.length;
+  const totalPages = Math.ceil(totalItems / state.pageSize);
+
+  if (state.currentPage > totalPages) {
+    state.currentPage = Math.max(1, totalPages);
+  }
+
+  const startIndex = (state.currentPage - 1) * state.pageSize;
+  const pagedData = data.slice(startIndex, startIndex + state.pageSize);
+
   if (state.viewMode === 'grid') {
-    renderGrid(data);
+    renderGrid(pagedData, startIndex);
   } else {
-    renderTable(data);
+    renderTable(pagedData, startIndex);
+  }
+
+  renderPaginationControls(totalItems, totalPages);
+}
+
+function renderPaginationControls(totalItems: number, totalPages: number) {
+  if (totalItems === 0) {
+    paginationControls.classList.add('hidden');
+    return;
+  }
+
+  paginationControls.classList.remove('hidden');
+
+  const startAt = (state.currentPage - 1) * state.pageSize + 1;
+  const endAt = Math.min(state.currentPage * state.pageSize, totalItems);
+
+  pageInfo.innerHTML = `<span class="hidden sm:inline">Menampilkan </span><strong class="text-gray-800">${startAt}-${endAt}</strong> dari <strong class="text-gray-800">${totalItems}</strong><span class="hidden sm:inline"> hasil</span>`;
+  pageNumbers.innerHTML = `<span class="text-gray-900 font-bold">${state.currentPage}</span><span class="mx-1">/</span>${totalPages}`;
+
+  const baseBtnClass = "flex-1 sm:flex-none px-4 py-1.5 rounded text-xs font-semibold transition-colors select-none text-center ";
+
+  // Update prev styling
+  if (state.currentPage === 1) {
+    pagePrev.className = baseBtnClass + "text-gray-300 cursor-not-allowed bg-transparent";
+    pagePrev.textContent = "Prev";
+  } else {
+    pagePrev.className = baseBtnClass + "text-gray-700 hover:bg-gray-50 active:bg-gray-100 cursor-pointer bg-transparent";
+    pagePrev.textContent = "Prev";
+  }
+
+  // Update next styling
+  if (state.currentPage >= totalPages) {
+    pageNext.className = baseBtnClass + "text-gray-300 cursor-not-allowed bg-transparent";
+    pageNext.textContent = "Next";
+  } else {
+    pageNext.className = baseBtnClass + "text-gray-700 hover:bg-gray-50 active:bg-gray-100 cursor-pointer bg-transparent";
+    pageNext.textContent = "Next";
   }
 }
 
-function renderGrid(products: Product[]) {
+function renderGrid(products: Product[], startIndex: number) {
   const showImg = state.visibleFields.has('img')
   const showName = state.visibleFields.has('name')
   const showPrice = state.visibleFields.has('price')
@@ -853,11 +948,11 @@ function renderGrid(products: Product[]) {
   }).join('')
 }
 
-function renderTable(products: Product[]) {
+function renderTable(products: Product[], startIndex: number) {
   // Build visible columns from ALL_FIELDS respecting order
   const cols = ALL_FIELDS.filter(f => state.visibleFields.has(f.key))
 
-  resultsDiv.className = 'mt-3 overflow-x-auto rounded-lg border border-gray-200'
+  resultsDiv.className = 'mt-3 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm'
   resultsDiv.innerHTML = `
     <table class="w-full text-sm border-collapse">
       <thead>
@@ -877,8 +972,8 @@ function renderTable(products: Product[]) {
       </thead>
       <tbody>
         ${products.map((p, i) => `
-          <tr class="border-b border-gray-100 hover:bg-orange-50/40 transition-colors">
-            <td class="px-3 py-2.5 text-xs text-gray-400">${i + 1}</td>
+          <tr class="border-b border-gray-100 hover:bg-orange-50/40 transition-colors bg-white">
+            <td class="px-3 py-2.5 text-xs text-gray-400">${startIndex + i + 1}</td>
             ${cols.map(c => {
     if (c.key === 'name') return `<td class="px-3 py-2.5"><a href="${p.link ?? '#'}" target="_blank" class="font-medium text-gray-800 hover:text-orange-600 transition-colors line-clamp-1">${p.name ?? '—'}</a></td>`
     if (c.key === 'price') return `<td class="px-3 py-2.5 font-bold text-orange-500 whitespace-nowrap">${p.price?.replace(/\n/g, ' ').trim() ?? '—'}</td>`
