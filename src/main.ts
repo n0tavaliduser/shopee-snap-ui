@@ -277,9 +277,23 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div id="results" class="mt-3"></div>
 
   </div>
+
+  <!-- Progress Toast -->
+  <div id="progress-toast" class="fixed bottom-4 right-4 left-4 md:left-auto md:w-[320px] bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-xl p-4 transform transition-transform duration-300 translate-y-[200%] z-50 pointer-events-none">
+    <div class="flex items-center justify-between mb-2">
+      <span id="toast-status" class="text-xs font-semibold text-gray-700 truncate max-w-[75%]">Memulai browser...</span>
+      <span id="toast-pct" class="text-xs font-bold text-orange-600">0%</span>
+    </div>
+    <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden mb-1.5">
+      <div id="toast-fill" class="bg-orange-500 h-1.5 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+    </div>
+    <div class="text-right">
+      <span id="toast-eta" class="text-[10px] text-gray-400 font-medium whitespace-nowrap">ETA: Menghitung...</span>
+    </div>
+  </div>
 `
 
-// ─── Refs ─────────────────────────────────────────────────────────────────────
+// ─── DOM Elements ─────────────────────────────────────────────────────────────
 const form = document.getElementById('scrape-form') as HTMLFormElement
 const resultsDiv = document.getElementById('results') as HTMLDivElement
 const resultsMeta = document.getElementById('results-meta') as HTMLDivElement
@@ -296,6 +310,37 @@ const configCloseBtn = document.getElementById('config-close-btn') as HTMLButton
 const fieldToggles = document.getElementById('field-toggles') as HTMLDivElement
 const viewGridBtn = document.getElementById('view-grid') as HTMLButtonElement
 const viewTableBtn = document.getElementById('view-table') as HTMLButtonElement
+
+const toastDiv = document.getElementById('progress-toast') as HTMLDivElement
+const toastStatus = document.getElementById('toast-status') as HTMLElement
+const toastFill = document.getElementById('toast-fill') as HTMLElement
+const toastPct = document.getElementById('toast-pct') as HTMLElement
+const toastEta = document.getElementById('toast-eta') as HTMLElement
+
+// ─── ETA Countdown State ──────────────────────────────────────────────────────
+let etaInterval: number | null = null
+let currentEtaSec: number = 0
+
+function startEtaCountdown(sec: number) {
+  if (etaInterval) window.clearInterval(etaInterval)
+  currentEtaSec = sec
+  updateEtaUI()
+  
+  etaInterval = window.setInterval(() => {
+    if (currentEtaSec > 0) {
+      currentEtaSec--
+      updateEtaUI()
+    } else {
+      if (etaInterval) window.clearInterval(etaInterval)
+      toastEta.textContent = 'Hampir selesai...'
+    }
+  }, 1000)
+}
+
+function updateEtaUI() {
+  toastEta.textContent = `Sisa waktu: ${currentEtaSec}s`
+  toastEta.classList.remove('invisible')
+}
 
 // ─── Sort Selects ─────────────────────────────────────────────────────────────
 const sortBySelect = new CustomSelect(sortSelectEl, [
@@ -422,31 +467,92 @@ form.addEventListener('submit', async (e) => {
       url.searchParams.set('fields', activeCanonicals.join(','))
     }
 
-    const res = await fetch(url.toString())
-    if (!res.ok) throw new Error(`Server error: ${res.status} ${res.statusText}`)
+    const eventSource = new EventSource(url.toString())
 
-    const json = (await res.json()) as ScrapeResponse
-
-    if (json.data && json.data.length > 0) {
-      ; (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData = json.data
-      
-      // Reset local filters and state on new scrape
-      state.localQuery = ''
-      state.localSortKey = null
-      localSearchInput.value = ''
-      
-      triggerRender()
-      resultsMeta.className = 'mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'
-      resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"`
-    } else {
+    function showError(msg: string) {
       resultsDiv.innerHTML = `
-        <div class="flex flex-col items-center gap-2 py-16 text-gray-400">
-          <svg class="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        <div class="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
-          <p class="text-sm">Tidak ada produk. Mungkin terblokir CAPTCHA?</p>
+          <span>${msg}</span>
         </div>`
     }
+
+    function showProgressToast(msg: any) {
+      toastDiv.classList.remove('translate-y-[200%]')
+      toastStatus.textContent = msg.status
+      toastFill.style.width = `${msg.percent}%`
+      toastPct.textContent = `${msg.percent}%`
+      
+      if (msg.eta && !msg.eta.includes('Menghitung')) {
+        const sec = parseInt(msg.eta.replace('s', '')) || 0
+        if (sec > 0) startEtaCountdown(sec)
+      } else {
+        if (etaInterval) window.clearInterval(etaInterval)
+        toastEta.textContent = 'Menghitung ETA...'
+        toastEta.classList.remove('invisible')
+      }
+    }
+
+    function hideProgressToast() {
+      if (etaInterval) window.clearInterval(etaInterval)
+      toastDiv.classList.add('translate-y-[200%]')
+    }
+
+    function finishLoading() {
+      submitBtn.disabled = false
+      spinner.classList.add('hidden')
+      btnLabel.textContent = 'Scrape'
+      hideProgressToast()
+    }
+
+    eventSource.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+
+        if (msg.type === 'progress') {
+          showProgressToast(msg)
+          btnLabel.textContent = 'Scraping...'
+        } else if (msg.type === 'result') {
+          eventSource.close()
+          const json = msg.payload as ScrapeResponse
+
+          if (json.data && json.data.length > 0) {
+            ; (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData = json.data
+            state.localQuery = ''
+            state.localSortKey = null
+            localSearchInput.value = ''
+            
+            triggerRender()
+            resultsMeta.className = 'mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'
+            resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"`
+          } else {
+            resultsDiv.innerHTML = `
+              <div class="flex flex-col items-center gap-2 py-16 text-gray-400">
+                <svg class="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-sm">Tidak ada produk ditemukan.</p>
+              </div>`
+          }
+          finishLoading()
+        } else if (msg.type === 'error') {
+          eventSource.close()
+          showError(msg.message)
+          finishLoading()
+        }
+      } catch (err) {
+        console.error("Gagal mem-parsing data stream", err)
+      }
+    }
+
+    eventSource.onerror = () => {
+      eventSource.close()
+      showError("Koneksi terputus (Server Error / Timeout). Coba periksa terminal server.")
+      finishLoading()
+    }
+
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     resultsDiv.innerHTML = `
@@ -456,10 +562,10 @@ form.addEventListener('submit', async (e) => {
         </svg>
         <span>${msg}</span>
       </div>`
-  } finally {
     submitBtn.disabled = false
     spinner.classList.add('hidden')
     btnLabel.textContent = 'Scrape'
+    toastDiv.classList.add('translate-y-[200%]')
   }
 })
 
