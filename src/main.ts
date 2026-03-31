@@ -71,13 +71,13 @@ class CustomSelect {
     this.selected = options.find(o => o.value === defaultValue) ?? options[0]
 
     this.wrapper = document.createElement('div')
-    this.wrapper.className = 'relative'
+    this.wrapper.className = 'relative w-full'
 
     this.trigger = document.createElement('button') as HTMLButtonElement
     this.trigger.type = 'button'
     this.trigger.className = [
-      'flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200',
-      'bg-white text-sm text-gray-700 font-medium cursor-pointer',
+      'flex items-center justify-between gap-1.5 w-full px-2.5 md:px-3 py-1.5 rounded-md border border-gray-200',
+      'bg-white text-sm text-gray-700 font-medium cursor-pointer flex-shrink-0 min-w-0',
       'hover:border-orange-400 hover:text-orange-600 transition-all select-none',
       'focus:outline-none focus:ring-2 focus:ring-orange-500/30',
     ].join(' ')
@@ -93,7 +93,7 @@ class CustomSelect {
       const item = document.createElement('button')
       item.type = 'button'
       item.className = [
-        'w-full text-left px-3 py-2 text-sm transition-colors',
+        'w-full text-left px-3 py-2 text-sm transition-colors whitespace-nowrap',
         'hover:bg-orange-50 hover:text-orange-600 cursor-pointer',
         opt.value === this.selected.value ? 'text-orange-600 font-semibold bg-orange-50/50' : 'text-gray-700',
       ].join(' ')
@@ -118,8 +118,8 @@ class CustomSelect {
 
   private renderTrigger() {
     this.trigger.innerHTML = `
-      <span>${this.selected.label}</span>
-      <svg class="w-3.5 h-3.5 text-gray-400 transition-transform ${this.isOpen ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <span class="truncate text-left" style="min-width: 0;">${this.selected.label}</span>
+      <svg class="w-3.5 h-3.5 flex-shrink-0 text-gray-400 transition-transform ${this.isOpen ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
       </svg>
     `
@@ -134,7 +134,7 @@ class CustomSelect {
       const el = child as HTMLElement
       const isActive = this.options[i].value === opt.value
       el.className = [
-        'w-full text-left px-3 py-2 text-sm transition-colors',
+        'w-full text-left px-3 py-2 text-sm transition-colors whitespace-nowrap',
         'hover:bg-orange-50 hover:text-orange-600 cursor-pointer',
         isActive ? 'text-orange-600 font-semibold bg-orange-50/50' : 'text-gray-700',
       ].join(' ')
@@ -164,46 +164,50 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
     <!-- Search Bar -->
     <form id="scrape-form">
-      <div class="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-gray-200 shadow-sm focus-within:ring-2 focus-within:ring-orange-500/30 focus-within:border-orange-400 transition-all">
+      <div class="flex flex-col md:flex-row md:items-center gap-2 p-1.5 md:p-1.5 p-2 bg-white rounded-lg border border-gray-200 shadow-sm focus-within:ring-2 focus-within:ring-orange-500/30 focus-within:border-orange-400 transition-all">
 
-        <!-- Keyword -->
-        <div class="flex items-center flex-1 gap-2 px-2">
+        <!-- Keyword & Config Row (Top on mobile) -->
+        <div class="flex items-center w-full md:flex-1 gap-2 px-2 py-1 md:py-0 relative">
           <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
           <input type="text" id="keyword" required placeholder="Cari produk..."
-            class="flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent outline-none py-1.5"/>
-        </div>
-
-        <div class="h-5 w-px bg-gray-200 flex-shrink-0"></div>
-
-        <!-- Controls -->
-        <div class="flex items-center gap-1.5 flex-shrink-0">
-
-          <!-- Max Products -->
-          <div class="flex items-center gap-1 px-2 py-1.5 rounded-md border border-gray-200 bg-gray-50">
-            <span class="text-xs text-gray-400 select-none">maks</span>
-            <input type="number" id="max_products" value="3" min="1" max="100"
-              class="w-8 bg-transparent text-gray-700 text-sm text-center outline-none font-medium" title="Max produk"/>
-          </div>
-
-          <!-- Sort By -->
-          <div id="sort-select-container"></div>
-          <div id="sort-order-container" class=""></div>
-
-          <!-- Config toggle -->
+            class="w-full text-sm text-gray-800 placeholder-gray-400 bg-transparent outline-none py-1.5 whitespace-nowrap overflow-hidden text-ellipsis"/>
+            
+          <!-- Config toggle (Moved to search row for better mobile UI) -->
           <button type="button" id="config-toggle"
-            class="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs text-gray-500 hover:border-orange-400 hover:text-orange-600 transition-all font-medium">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            class="flex items-center whitespace-nowrap flex-shrink-0 gap-1 md:px-2.5 px-2 py-1.5 rounded-md border border-gray-200 bg-gray-50 md:bg-white text-xs text-gray-500 hover:border-orange-400 hover:text-orange-600 transition-all font-medium ml-1">
+            <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
             </svg>
-            <span>Config</span>
+            <span class="hidden md:inline">Config</span>
           </button>
+        </div>
+
+        <div class="hidden md:block h-6 w-px bg-gray-200 flex-shrink-0"></div>
+
+        <!-- Controls -->
+        <div class="flex items-center gap-1.5 flex-wrap md:flex-nowrap w-full md:w-auto mt-1 md:mt-0 px-1 md:px-0 pb-1 md:pb-0">
+
+          <!-- Controls Group (Max, Sort) -->
+          <div class="flex items-center gap-1.5 w-full md:w-auto mt-1 md:mt-0 pb-1.5 md:pb-0">
+            <!-- Max Products -->
+            <div class="flex items-center gap-1 px-2 py-1.5 rounded-md border border-gray-200 bg-gray-50 flex-shrink-0 whitespace-nowrap w-[72px] md:w-auto">
+              <span class="text-xs text-gray-400 select-none hidden md:inline">maks</span>
+              <input type="number" id="max_products" value="3" min="1" max="100"
+                class="w-full bg-transparent text-gray-700 text-sm md:text-center text-left outline-none font-medium" title="Max produk" style="-moz-appearance: textfield;"/>
+            </div>
+
+            <!-- Sort By -->
+            <div id="sort-select-container" class="flex-1 md:flex-none min-w-0"></div>
+            <!-- Sort Order -->
+            <div id="sort-order-container" class="flex-1 md:flex-none min-w-0"></div>
+          </div>
 
           <!-- Submit -->
           <button type="submit" id="submit-btn"
-            class="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-semibold px-4 py-1.5 rounded-md transition-all">
-            <svg id="loading-spinner" class="hidden animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+            class="flex items-center justify-center whitespace-nowrap flex-shrink-0 gap-1.5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-semibold px-4 py-1.5 rounded-md transition-all w-full md:w-auto mt-1.5 md:mt-0">
+            <svg id="loading-spinner" class="hidden animate-spin w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
             </svg>
