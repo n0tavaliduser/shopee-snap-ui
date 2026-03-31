@@ -170,15 +170,45 @@ class CustomSelect {
 
 // ─── App Markup ───────────────────────────────────────────────────────────────
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div class="max-w-4xl mx-auto px-4 py-10">
+  <!-- Sidebar Backdrop -->
+  <div id="sidebar-backdrop" class="fixed inset-0 bg-gray-900/50 z-40 hidden opacity-0 transition-opacity duration-300"></div>
+  
+  <!-- Sidebar -->
+  <div id="sidebar-panel" class="fixed top-0 left-0 h-full w-72 md:w-80 bg-white shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-orange-50/50">
+      <h2 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Riwayat Scrape
+      </h2>
+      <button id="sidebar-close" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-white rounded-md transition-colors">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div id="history-content" class="flex-1 overflow-y-auto p-4 space-y-2.5">
+       <div class="text-center text-gray-400 text-xs py-8">Memuat riwayat...</div>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-4 py-8 md:py-10">
 
     <!-- Header -->
-    <div class="mb-6">
-      <div class="flex items-center gap-2 mb-0.5">
-        <img src="${logoUrl}" alt="Shopee Logo" class="h-6 w-auto object-contain drop-shadow-sm" />
-        <h1 class="text-lg font-bold text-gray-900 tracking-tight">Shopee Scraper</h1>
+    <div class="mb-6 flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-2 mb-0.5">
+          <button type="button" id="sidebar-open" class="p-1.5 -ml-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-md transition-colors">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <img src="${logoUrl}" alt="Shopee Logo" class="h-6 w-auto object-contain drop-shadow-sm ml-1" />
+          <h1 class="text-lg font-bold text-gray-900 tracking-tight">Shopee Scraper</h1>
+        </div>
+        <p class="text-[11px] md:text-xs text-gray-400 ml-11 md:ml-[3.25rem] pb-1">Ambil data produk Shopee langsung dari browser.</p>
       </div>
-      <p class="text-xs text-gray-400 ml-8">Ambil data produk Shopee langsung dari browser.</p>
     </div>
 
     <!-- Search Bar -->
@@ -334,6 +364,12 @@ const toastFill = document.getElementById('toast-fill') as HTMLElement
 const toastPct = document.getElementById('toast-pct') as HTMLElement
 const toastEta = document.getElementById('toast-eta') as HTMLElement
 
+const sidebarBackdrop = document.getElementById('sidebar-backdrop') as HTMLDivElement
+const sidebarPanel = document.getElementById('sidebar-panel') as HTMLDivElement
+const sidebarOpenBtn = document.getElementById('sidebar-open') as HTMLButtonElement
+const sidebarCloseBtn = document.getElementById('sidebar-close') as HTMLButtonElement
+const historyContent = document.getElementById('history-content') as HTMLDivElement
+
 // ─── ETA Countdown State ──────────────────────────────────────────────────────
 let etaInterval: number | null = null
 let currentEtaSec: number = 0
@@ -450,6 +486,139 @@ function renderFieldToggles() {
   })
 }
 renderFieldToggles()
+
+// ─── Sidebar Logic ────────────────────────────────────────────────────────────
+
+function openSidebar() {
+  sidebarBackdrop.classList.remove('hidden')
+  requestAnimationFrame(() => {
+    sidebarBackdrop.classList.remove('opacity-0')
+    sidebarPanel.classList.remove('-translate-x-full')
+  })
+  loadHistory()
+}
+
+function closeSidebar() {
+  sidebarBackdrop.classList.add('opacity-0')
+  sidebarPanel.classList.add('-translate-x-full')
+  setTimeout(() => sidebarBackdrop.classList.add('hidden'), 300)
+}
+
+sidebarOpenBtn.addEventListener('click', openSidebar)
+sidebarCloseBtn.addEventListener('click', closeSidebar)
+sidebarBackdrop.addEventListener('click', closeSidebar)
+
+async function loadHistory() {
+  historyContent.innerHTML = `<div class="text-center text-gray-400 text-xs py-10 flex flex-col items-center justify-center gap-3">
+    <svg class="animate-spin w-5 h-5 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    Memuat riwayat...
+  </div>`
+  
+  try {
+    const baseUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
+    const res = await fetch(`${baseUrl}/history`)
+    const data = await res.json()
+    if (data.status === 'success' && data.history.length > 0) {
+      historyContent.innerHTML = data.history.map((h: any) => {
+        let dateStr = ''
+        if (h.scraped_at) {
+          const dt = new Date(h.scraped_at)
+          dateStr = dt.toLocaleString('id-ID', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          }).replace(/\./g, ':')
+        }
+        return `
+          <div class="p-3 bg-gray-50 border border-gray-100 hover:bg-orange-50 hover:border-orange-200 rounded-lg cursor-pointer transition-colors group" data-filename="${h.filename}">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="font-semibold text-sm text-gray-800 group-hover:text-orange-600 truncate mr-2">${h.keyword || 'Tanpa Keyword'}</span>
+              <span class="text-[10px] font-medium bg-white px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 whitespace-nowrap">${h.total_results} produk</span>
+            </div>
+            <div class="text-[11px] text-gray-400 flex items-center justify-between">
+              <span>${dateStr}</span>
+              ${h.total_time ? `<span>${Math.round(h.total_time)} detik</span>` : ''}
+            </div>
+          </div>
+        `
+      }).join('')
+      
+      Array.from(historyContent.children).forEach(el => {
+        el.addEventListener('click', () => {
+          const filename = el.getAttribute('data-filename')
+          if (filename) loadHistoryDetail(filename)
+        })
+      })
+      
+    } else {
+      historyContent.innerHTML = `<div class="text-center text-gray-400 text-xs py-8">Belum ada riwayat.</div>`
+    }
+  } catch (err: any) {
+    console.error("Load History Error:", err)
+    historyContent.innerHTML = `<div class="text-center text-red-500 text-xs py-8 px-2 break-all overflow-hidden">Error: ${err.message || String(err)}</div>`
+  }
+}
+
+async function loadHistoryDetail(filename: string) {
+  closeSidebar()
+  
+  if (etaInterval) window.clearInterval(etaInterval)
+  toastDiv.classList.add('translate-y-[200%]')
+  
+  btnLabel.textContent = 'Memuat riwayat...'
+  submitBtn.disabled = true
+  spinner.classList.remove('hidden')
+  resultsDiv.innerHTML = ''
+  resultsMeta.classList.add('hidden')
+  
+  try {
+    const baseUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
+    const res = await fetch(`${baseUrl}/history/${filename}`)
+    const json = await res.json() as ScrapeResponse
+    
+    if (json.status === 'success') {
+      const keywordInput = document.getElementById('keyword') as HTMLInputElement
+      keywordInput.value = json.keyword || ''
+      
+      if (json.data && json.data.length > 0) {
+        ; (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData = json.data
+        state.localQuery = ''
+        state.localSortKey = null
+        localSearchInput.value = ''
+        
+        triggerRender()
+        resultsMeta.className = 'mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'
+
+        let timeStr = ''
+        if (json.total_time !== undefined) {
+           timeStr = ` · diambil dalam ${formatTime(json.total_time)}`
+        }
+        if (json.scraped_at) {
+           const dt = new Date(json.scraped_at)
+           const formattedDate = dt.toLocaleString('id-ID', {
+              day: '2-digit', month: 'short', year: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+           }).replace(/\./g, ':')
+           timeStr += ` pada ${formattedDate}`
+        }
+        resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"${timeStr}`
+      } else {
+        resultsDiv.innerHTML = `<div class="text-center text-gray-400 text-xs py-8">Riwayat ini belum memiliki produk.</div>`
+      }
+    } else {
+      throw new Error("Gagal memuat data histori")
+    }
+  } catch (err: any) {
+    resultsDiv.innerHTML = `
+      <div class="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>${err.message || String(err)}</span>
+      </div>`
+  } finally {
+    spinner.classList.add('hidden')
+    btnLabel.textContent = 'Scrape'
+    submitBtn.disabled = false
+  }
+}
 
 // ─── Form Submit ───────────────────────────────────────────────────────────────
 form.addEventListener('submit', async (e) => {
