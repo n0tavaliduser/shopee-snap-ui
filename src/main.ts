@@ -17,6 +17,7 @@ interface ScrapeResponse {
   keyword: string
   total_results: number
   total_time?: number
+  scraped_at?: string
   data?: Product[]
 }
 
@@ -546,6 +547,14 @@ form.addEventListener('submit', async (e) => {
             let timeStr = ''
             if (json.total_time !== undefined) {
                timeStr = ` · diambil dalam ${formatTime(json.total_time)}`
+            }
+            if (json.scraped_at) {
+               const dt = new Date(json.scraped_at)
+               const formattedDate = dt.toLocaleString('id-ID', {
+                  day: '2-digit', month: 'short', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+               }).replace(/\./g, ':')
+               timeStr += ` pada ${formattedDate}`
             }
             resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"${timeStr}`
           } else {
