@@ -31,13 +31,13 @@ interface FieldConfig {
 
 // All displayable fields with their scraper key → config canonical map → label mapping
 const ALL_FIELDS: FieldConfig[] = [
-  { key: 'name',     canonical: 'product_name', label: 'Nama Produk' },
-  { key: 'price',    canonical: 'price',        label: 'Harga' },
-  { key: 'rating',   canonical: 'rating',       label: 'Rating' },
-  { key: 'location', canonical: 'location',     label: 'Lokasi' },
-  { key: 'shipping', canonical: 'shipping',     label: 'Ongkir' },
-  { key: 'img',      canonical: 'image_url',    label: 'Gambar' },
-  { key: 'link',     canonical: 'url',          label: 'URL' },
+  { key: 'name', canonical: 'product_name', label: 'Nama Produk' },
+  { key: 'price', canonical: 'price', label: 'Harga' },
+  { key: 'rating', canonical: 'rating', label: 'Rating' },
+  { key: 'location', canonical: 'location', label: 'Lokasi' },
+  { key: 'shipping', canonical: 'shipping', label: 'Ongkir' },
+  { key: 'img', canonical: 'image_url', label: 'Gambar' },
+  { key: 'link', canonical: 'url', label: 'URL' },
 ]
 
 // ─── App State ────────────────────────────────────────────────────────────────
@@ -183,13 +183,13 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <!-- Max Products -->
           <div class="flex items-center gap-1 px-2 py-1.5 rounded-md border border-gray-200 bg-gray-50">
             <span class="text-xs text-gray-400 select-none">maks</span>
-            <input type="number" id="max_products" value="10" min="1" max="100"
+            <input type="number" id="max_products" value="3" min="1" max="100"
               class="w-8 bg-transparent text-gray-700 text-sm text-center outline-none font-medium" title="Max produk"/>
           </div>
 
           <!-- Sort By -->
           <div id="sort-select-container"></div>
-          <div id="sort-order-container" class="hidden"></div>
+          <div id="sort-order-container" class=""></div>
 
           <!-- Config toggle -->
           <button type="button" id="config-toggle"
@@ -259,37 +259,37 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `
 
 // ─── Refs ─────────────────────────────────────────────────────────────────────
-const form            = document.getElementById('scrape-form')    as HTMLFormElement
-const resultsDiv      = document.getElementById('results')        as HTMLDivElement
-const resultsMeta     = document.getElementById('results-meta')   as HTMLDivElement
-const resultsCount    = document.getElementById('results-count')  as HTMLParagraphElement
-const submitBtn       = document.getElementById('submit-btn')     as HTMLButtonElement
-const spinner         = document.getElementById('loading-spinner')as HTMLElement
-const btnLabel        = document.getElementById('btn-label')      as HTMLElement
-const sortSelectEl    = document.getElementById('sort-select-container') as HTMLElement
-const sortOrderEl     = document.getElementById('sort-order-container')  as HTMLElement
-const configToggleBtn = document.getElementById('config-toggle')  as HTMLButtonElement
-const configPanel     = document.getElementById('config-panel')   as HTMLDivElement
-const fieldToggles    = document.getElementById('field-toggles')  as HTMLDivElement
-const viewGridBtn     = document.getElementById('view-grid')      as HTMLButtonElement
-const viewTableBtn    = document.getElementById('view-table')     as HTMLButtonElement
+const form = document.getElementById('scrape-form') as HTMLFormElement
+const resultsDiv = document.getElementById('results') as HTMLDivElement
+const resultsMeta = document.getElementById('results-meta') as HTMLDivElement
+const resultsCount = document.getElementById('results-count') as HTMLParagraphElement
+const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement
+const spinner = document.getElementById('loading-spinner') as HTMLElement
+const btnLabel = document.getElementById('btn-label') as HTMLElement
+const sortSelectEl = document.getElementById('sort-select-container') as HTMLElement
+const sortOrderEl = document.getElementById('sort-order-container') as HTMLElement
+const configToggleBtn = document.getElementById('config-toggle') as HTMLButtonElement
+const configPanel = document.getElementById('config-panel') as HTMLDivElement
+const fieldToggles = document.getElementById('field-toggles') as HTMLDivElement
+const viewGridBtn = document.getElementById('view-grid') as HTMLButtonElement
+const viewTableBtn = document.getElementById('view-table') as HTMLButtonElement
 
 // ─── Sort Selects ─────────────────────────────────────────────────────────────
 const sortBySelect = new CustomSelect(sortSelectEl, [
-  { value: 'sales',     label: 'Terlaris' },
+  { value: 'sales', label: 'Terlaris' },
   { value: 'relevancy', label: 'Relevansi' },
-  { value: 'ctime',     label: 'Terbaru' },
-  { value: 'price',     label: 'Harga' },
-], 'sales', (val) => {
+  { value: 'ctime', label: 'Terbaru' },
+  { value: 'price', label: 'Harga' },
+], 'price', (val) => {
   val === 'price'
     ? sortOrderEl.classList.remove('hidden')
     : sortOrderEl.classList.add('hidden')
 })
 
 const sortOrderSelect = new CustomSelect(sortOrderEl, [
-  { value: 'asc',  label: '↑ Termurah' },
+  { value: 'asc', label: '↑ Termurah' },
   { value: 'desc', label: '↓ Termahal' },
-], 'asc', () => {})
+], 'asc', () => { })
 
 // ─── Config Panel ─────────────────────────────────────────────────────────────
 
@@ -351,8 +351,8 @@ renderFieldToggles()
 // ─── Form Submit ───────────────────────────────────────────────────────────────
 form.addEventListener('submit', async (e) => {
   e.preventDefault()
-  const keyword    = (document.getElementById('keyword')      as HTMLInputElement).value.trim()
-  const maxProducts= (document.getElementById('max_products') as HTMLInputElement).value
+  const keyword = (document.getElementById('keyword') as HTMLInputElement).value.trim()
+  const maxProducts = (document.getElementById('max_products') as HTMLInputElement).value
 
   resultsDiv.innerHTML = ''
   resultsMeta.classList.add('hidden')
@@ -387,7 +387,7 @@ form.addEventListener('submit', async (e) => {
     const json = (await res.json()) as ScrapeResponse
 
     if (json.data && json.data.length > 0) {
-      ;(resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData = json.data
+      ; (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData = json.data
       renderResults(json.data)
       resultsMeta.classList.remove('hidden')
       resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"`
@@ -426,7 +426,7 @@ function renderResults(products: Product[]) {
 }
 
 function renderGrid(products: Product[]) {
-  const showImg  = state.visibleFields.has('img')
+  const showImg = state.visibleFields.has('img')
   const showName = state.visibleFields.has('name')
   const showPrice = state.visibleFields.has('price')
   const showRating = state.visibleFields.has('rating')
@@ -444,20 +444,20 @@ function renderGrid(products: Product[]) {
         ${showImg ? `
         <div class="aspect-square bg-gray-50 overflow-hidden">
           ${hasImg
-            ? `<img src="${p.img}" alt="${p.name}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">`
-            : `<div class="w-full h-full flex items-center justify-center">
+          ? `<img src="${p.img}" alt="${p.name}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">`
+          : `<div class="w-full h-full flex items-center justify-center">
                  <svg class="w-8 h-8 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                  </svg>
                </div>`
-          }
+        }
         </div>` : ''}
         <div class="p-2.5 flex flex-col gap-0.5 flex-grow">
-          ${showName    ? `<p class="text-xs text-gray-700 font-medium line-clamp-2 leading-snug group-hover:text-orange-600 transition-colors">${p.name ?? '—'}</p>` : ''}
-          ${showPrice   ? `<p class="text-sm font-bold text-orange-500 mt-1">${price || '—'}</p>` : ''}
+          ${showName ? `<p class="text-xs text-gray-700 font-medium line-clamp-2 leading-snug group-hover:text-orange-600 transition-colors">${p.name ?? '—'}</p>` : ''}
+          ${showPrice ? `<p class="text-sm font-bold text-orange-500 mt-1">${price || '—'}</p>` : ''}
           ${(showRating || showLocation) ? `
           <div class="flex items-center justify-between mt-1">
-            ${showRating   ? `<span class="text-xs text-amber-500 font-medium">★ ${p.rating ?? '—'}</span>` : '<span></span>'}
+            ${showRating ? `<span class="text-xs text-amber-500 font-medium">★ ${p.rating ?? '—'}</span>` : '<span></span>'}
             ${showLocation ? `<span class="text-xs text-gray-400 truncate max-w-[80px] text-right">${p.location ?? ''}</span>` : ''}
           </div>` : ''}
           ${showShipping && p.shipping ? `<span class="text-xs text-green-600 font-medium mt-0.5">${p.shipping}</span>` : ''}
@@ -485,14 +485,14 @@ function renderTable(products: Product[]) {
           <tr class="border-b border-gray-100 hover:bg-orange-50/40 transition-colors">
             <td class="px-3 py-2.5 text-xs text-gray-400">${i + 1}</td>
             ${cols.map(c => {
-              if (c.key === 'name')  return `<td class="px-3 py-2.5"><a href="${p.link ?? '#'}" target="_blank" class="font-medium text-gray-800 hover:text-orange-600 transition-colors line-clamp-1">${p.name ?? '—'}</a></td>`
-              if (c.key === 'price') return `<td class="px-3 py-2.5 font-bold text-orange-500 whitespace-nowrap">${p.price?.replace(/\n/g,' ').trim() ?? '—'}</td>`
-              if (c.key === 'rating') return `<td class="px-3 py-2.5 text-amber-500 font-medium whitespace-nowrap">★ ${p.rating ?? '—'}</td>`
-              if (c.key === 'img')   return `<td class="px-3 py-2.5">${p.img && !p.img.startsWith('data:') && p.img !== '<Image>' ? `<img src="${p.img}" class="w-10 h-10 object-cover rounded-md border border-gray-100">` : '<span class="text-gray-300 text-xs">—</span>'}</td>`
-              if (c.key === 'link')  return `<td class="px-3 py-2.5"><a href="${p.link ?? '#'}" target="_blank" class="text-xs text-blue-500 hover:underline truncate max-w-[180px] block">${p.link ?? '—'}</a></td>`
-              if (c.key === 'shipping') return `<td class="px-3 py-2.5 text-green-600 text-xs font-medium">${p.shipping || '—'}</td>`
-              return `<td class="px-3 py-2.5 text-gray-600 whitespace-nowrap">${p[c.key] ?? '—'}</td>`
-            }).join('')}
+    if (c.key === 'name') return `<td class="px-3 py-2.5"><a href="${p.link ?? '#'}" target="_blank" class="font-medium text-gray-800 hover:text-orange-600 transition-colors line-clamp-1">${p.name ?? '—'}</a></td>`
+    if (c.key === 'price') return `<td class="px-3 py-2.5 font-bold text-orange-500 whitespace-nowrap">${p.price?.replace(/\n/g, ' ').trim() ?? '—'}</td>`
+    if (c.key === 'rating') return `<td class="px-3 py-2.5 text-amber-500 font-medium whitespace-nowrap">★ ${p.rating ?? '—'}</td>`
+    if (c.key === 'img') return `<td class="px-3 py-2.5">${p.img && !p.img.startsWith('data:') && p.img !== '<Image>' ? `<img src="${p.img}" class="w-10 h-10 object-cover rounded-md border border-gray-100">` : '<span class="text-gray-300 text-xs">—</span>'}</td>`
+    if (c.key === 'link') return `<td class="px-3 py-2.5"><a href="${p.link ?? '#'}" target="_blank" class="text-xs text-blue-500 hover:underline truncate max-w-[180px] block">${p.link ?? '—'}</a></td>`
+    if (c.key === 'shipping') return `<td class="px-3 py-2.5 text-green-600 text-xs font-medium">${p.shipping || '—'}</td>`
+    return `<td class="px-3 py-2.5 text-gray-600 whitespace-nowrap">${p[c.key] ?? '—'}</td>`
+  }).join('')}
           </tr>
         `).join('')}
       </tbody>
