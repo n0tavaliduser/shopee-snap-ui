@@ -16,7 +16,23 @@ interface ScrapeResponse {
   status: string
   keyword: string
   total_results: number
-  data: Product[]
+  total_time?: number
+  data?: Product[]
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function formatTime(secondsNum: number): string {
+  const totalSeconds = Math.round(secondsNum)
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+
+  const parts = []
+  if (h > 0) parts.push(`${h} jam`)
+  if (m > 0) parts.push(`${m} menit`)
+  if (s > 0 || (h === 0 && m === 0)) parts.push(`${s} detik`)
+
+  return parts.join(' ')
 }
 
 interface SelectOption {
@@ -526,7 +542,12 @@ form.addEventListener('submit', async (e) => {
             
             triggerRender()
             resultsMeta.className = 'mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'
-            resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"`
+
+            let timeStr = ''
+            if (json.total_time !== undefined) {
+               timeStr = ` · diambil dalam ${formatTime(json.total_time)}`
+            }
+            resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"${timeStr}`
           } else {
             resultsDiv.innerHTML = `
               <div class="flex flex-col items-center gap-2 py-16 text-gray-400">
