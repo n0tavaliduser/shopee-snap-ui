@@ -98,8 +98,10 @@ form.addEventListener('submit', async (e) => {
   btnText.textContent = 'Chrome is Running...';
 
   try {
-    // Call the FastAPI endpoint
-    const url = new URL('http://localhost:8000/scrape');
+    // Call the FastAPI endpoint using dynamic backend URL
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const url = new URL(`${baseUrl}/scrape`);
+    
     url.searchParams.append('keyword', keyword);
     if(maxProducts) url.searchParams.append('max_products', maxProducts);
     
