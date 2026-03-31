@@ -1,4 +1,5 @@
 import './style.css'
+import logoUrl from './assets/fonts/logo.png'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Product {
@@ -46,8 +47,11 @@ type ViewMode = 'grid' | 'table'
 const state = {
   viewMode: 'table' as ViewMode,
   // default visible fields
-  visibleFields: new Set<keyof Product>(['name', 'price', 'link']),
+  visibleFields: new Set<string>(['name', 'price', 'link']),
   configOpen: false,
+  localQuery: '',
+  localSortKey: null as string | null,
+  localSortDir: 'asc' as 'asc' | 'desc',
 }
 
 // ─── Custom Select Component ───────────────────────────────────────────────────
@@ -154,12 +158,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <!-- Header -->
     <div class="mb-6">
       <div class="flex items-center gap-2 mb-0.5">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-        </svg>
+        <img src="${logoUrl}" alt="Shopee Logo" class="h-6 w-auto object-contain drop-shadow-sm" />
         <h1 class="text-lg font-bold text-gray-900 tracking-tight">Shopee Scraper</h1>
       </div>
-      <p class="text-xs text-gray-400 ml-7">Ambil data produk Shopee langsung dari browser.</p>
+      <p class="text-xs text-gray-400 ml-8">Ambil data produk Shopee langsung dari browser.</p>
     </div>
 
     <!-- Search Bar -->
@@ -259,8 +261,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </div>
 
     <!-- Results meta -->
-    <div id="results-meta" class="hidden mt-5">
+    <div id="results-meta" class="hidden mt-4 items-center justify-between flex-wrap gap-2">
       <p id="results-count" class="text-xs text-gray-400"></p>
+      
+      <!-- Local Search Filter -->
+      <div class="relative w-full sm:w-auto mt-2 sm:mt-0">
+        <svg class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="text" id="local-search" placeholder="Filter hasil..." class="w-full sm:w-60 pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-700 outline-none focus:border-orange-400 focus:bg-white transition-colors"/>
+      </div>
     </div>
 
     <!-- Results area -->
@@ -274,6 +284,7 @@ const form = document.getElementById('scrape-form') as HTMLFormElement
 const resultsDiv = document.getElementById('results') as HTMLDivElement
 const resultsMeta = document.getElementById('results-meta') as HTMLDivElement
 const resultsCount = document.getElementById('results-count') as HTMLParagraphElement
+const localSearchInput = document.getElementById('local-search') as HTMLInputElement
 const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement
 const spinner = document.getElementById('loading-spinner') as HTMLElement
 const btnLabel = document.getElementById('btn-label') as HTMLElement
@@ -327,12 +338,32 @@ function setViewMode(mode: ViewMode) {
   viewGridBtn.className = `view-btn flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${isGrid ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-500 border-gray-200 hover:border-orange-400 hover:text-orange-600'}`
   viewTableBtn.className = `view-btn flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${!isGrid ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-500 border-gray-200 hover:border-orange-400 hover:text-orange-600'}`
   // Re-render if data exists
-  const cached = (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData
-  if (cached) renderResults(cached)
+  triggerRender()
 }
 
 viewGridBtn.addEventListener('click', () => setViewMode('grid'))
 viewTableBtn.addEventListener('click', () => setViewMode('table'))
+
+// Filter / Sort Listeners
+localSearchInput.addEventListener('input', (e) => {
+  state.localQuery = (e.target as HTMLInputElement).value
+  triggerRender()
+})
+
+resultsDiv.addEventListener('click', (e) => {
+  const th = (e.target as HTMLElement).closest('th[data-sort]') as HTMLElement
+  if (!th) return
+  
+  const key = th.dataset.sort!
+  if (state.localSortKey === key) {
+     if (state.localSortDir === 'asc') state.localSortDir = 'desc'
+     else state.localSortKey = null
+  } else {
+     state.localSortKey = key
+     state.localSortDir = 'asc'
+  }
+  triggerRender()
+})
 
 // Field toggle chips
 function renderFieldToggles() {
@@ -351,8 +382,7 @@ function renderFieldToggles() {
         state.visibleFields.add(key)
       }
       renderFieldToggles()
-      const cached = (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData
-      if (cached) renderResults(cached)
+      triggerRender()
     })
     fieldToggles.appendChild(chip)
   })
@@ -399,8 +429,14 @@ form.addEventListener('submit', async (e) => {
 
     if (json.data && json.data.length > 0) {
       ; (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData = json.data
-      renderResults(json.data)
-      resultsMeta.classList.remove('hidden')
+      
+      // Reset local filters and state on new scrape
+      state.localQuery = ''
+      state.localSortKey = null
+      localSearchInput.value = ''
+      
+      triggerRender()
+      resultsMeta.className = 'mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'
       resultsCount.textContent = `${json.total_results} produk · "${json.keyword}"`
     } else {
       resultsDiv.innerHTML = `
@@ -428,11 +464,45 @@ form.addEventListener('submit', async (e) => {
 })
 
 // ─── Render ───────────────────────────────────────────────────────────────────
-function renderResults(products: Product[]) {
+function triggerRender() {
+  const cached = (resultsDiv as HTMLElement & { _lastData?: Product[] })._lastData;
+  if (!cached) return;
+
+  let data = [...cached];
+
+  // Apply Filter
+  const q = state.localQuery.trim().toLowerCase();
+  if (q) {
+    data = data.filter(p => Object.values(p).join(' ').toLowerCase().includes(q));
+  }
+
+  // Apply Sorting
+  if (state.localSortKey) {
+    data.sort((a, b) => {
+      let va: any = a[state.localSortKey as keyof Product] ?? '';
+      let vb: any = b[state.localSortKey as keyof Product] ?? '';
+
+      if (state.localSortKey === 'price') {
+        va = parseFloat(String(va).replace(/[^0-9]/g, '')) || 0;
+        vb = parseFloat(String(vb).replace(/[^0-9]/g, '')) || 0;
+      } else if (state.localSortKey === 'rating') {
+        va = parseFloat(String(va)) || 0;
+        vb = parseFloat(String(vb)) || 0;
+      } else {
+        va = String(va).toLowerCase();
+        vb = String(vb).toLowerCase();
+      }
+
+      if (va < vb) return state.localSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return state.localSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
   if (state.viewMode === 'grid') {
-    renderGrid(products)
+    renderGrid(data);
   } else {
-    renderTable(products)
+    renderTable(data);
   }
 }
 
@@ -488,7 +558,16 @@ function renderTable(products: Product[]) {
       <thead>
         <tr class="bg-gray-50 border-b border-gray-200">
           <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-8">#</th>
-          ${cols.map(c => `<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">${c.label}</th>`).join('')}
+          ${cols.map(c => `
+            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-100 select-none group transition-colors" data-sort="${c.key}">
+              <div class="flex items-center gap-1.5 text-nowrap">
+                ${c.label}
+                <span class="text-gray-300 group-hover:text-gray-400 ${state.localSortKey === c.key ? '!text-orange-500' : ''}">
+                  ${state.localSortKey === c.key ? (state.localSortDir === 'asc' ? '↑' : '↓') : '↕'}
+                </span>
+              </div>
+            </th>
+          `).join('')}
         </tr>
       </thead>
       <tbody>
