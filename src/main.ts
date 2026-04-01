@@ -737,26 +737,33 @@ form.addEventListener('submit', async (e) => {
     
     while (Date.now() - pollStart < MAX_POLL_MS) {
       try {
-        const statusRes = await fetch(`${baseUrl}/warp-status`)
-        const statusJson = await statusRes.json()
-        const { connection_state, current_ip, rotating } = statusJson
-        
+        const controller = new AbortController()
+        const fetchTimeout = setTimeout(() => controller.abort(), 8_000)
+        let statusJson: any = null
+        try {
+          const statusRes = await fetch(`${baseUrl}/warp-status`, { signal: controller.signal })
+          statusJson = await statusRes.json()
+        } finally {
+          clearTimeout(fetchTimeout)
+        }
+
+        const { connection_state, rotating } = statusJson
         const elapsed = Math.round((Date.now() - pollStart) / 1000)
         const etaSec = Math.max(5, 30 - elapsed)
-        
+
         if (rotating) {
           showProgressToast({ status: `Menunggu rotasi IP selesai... (${elapsed}s)`, percent: 5, eta: `${etaSec}s` })
         } else if (connection_state === 'connected') {
-          showProgressToast({ status: `Koneksi WARP stabil · IP: ${current_ip}`, percent: 10, eta: '2s' })
+          showProgressToast({ status: `Koneksi WARP stabil`, percent: 10, eta: '2s' })
           warpOk = true
           break
         } else {
           showProgressToast({ status: `Menunggu koneksi WARP... (${elapsed}s)`, percent: 5, eta: `${etaSec}s` })
         }
       } catch (_) {
-        // Endpoint tidak tersedia, skip polling dan lanjutkan saja
-        warpOk = true
-        break
+        // Server error / timeout — jangan skip, tetap retry
+        const elapsed = Math.round((Date.now() - pollStart) / 1000)
+        showProgressToast({ status: `Server belum merespons, mencoba lagi... (${elapsed}s)`, percent: 3, eta: `${Math.max(5, 30 - elapsed)}s` })
       }
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
     }
