@@ -197,20 +197,39 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
   <div class="max-w-4xl mx-auto px-4 py-8 md:py-10">
 
-    <!-- Header -->
-    <div class="mb-6 flex items-start justify-between">
-      <div>
-        <div class="flex items-center gap-2 mb-0.5">
-          <button type="button" id="sidebar-open" class="p-1.5 -ml-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-md transition-colors">
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <img src="${logoUrl}" alt="Shopee Logo" class="h-6 w-auto object-contain drop-shadow-sm ml-1" />
-          <h1 class="text-lg font-bold text-gray-900 tracking-tight">Shopee Scraper</h1>
+    <!-- Header Card -->
+    <div class="mb-6 p-4 md:p-5 bg-white border border-gray-200 rounded-xl shadow-sm flex items-center justify-between w-full transition-all">
+      
+      <!-- Brand & Title Group -->
+      <div class="flex items-center gap-3 md:gap-4">
+        <!-- Orange Logo Background Box (Desktop) -->
+        <div class="p-2 bg-orange-50/80 border border-orange-100/50 rounded-xl shrink-0 hidden sm:flex items-center justify-center">
+           <img src="${logoUrl}" alt="Shopee Logo" class="h-7 w-auto object-contain drop-shadow-sm" />
         </div>
-        <p class="text-[11px] md:text-xs text-gray-400 ml-11 md:ml-[3.25rem] pb-1">Ambil data produk Shopee langsung dari browser.</p>
+        
+        <!-- Title & Subtitle Stack -->
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <!-- Inline Logo (Mobile) -->
+            <img src="${logoUrl}" alt="Shopee Logo" class="h-5 w-auto object-contain sm:hidden" />
+            <h1 class="text-base md:text-[19px] font-bold text-gray-900 leading-tight tracking-tight">Shopee Scraper</h1>
+          </div>
+          <p class="text-[11px] md:text-xs text-gray-500 font-medium leading-none mt-1">Ekstraksi data produk shopee</p>
+        </div>
       </div>
+
+      <!-- Sidebar Toggle Action Group -->
+      <div class="flex items-center gap-3">
+        <div class="h-6 w-px bg-gray-200 hidden md:block mx-2 opacity-70"></div>
+        
+        <button type="button" id="sidebar-open" class="group flex items-center gap-2 p-2 md:px-3 md:py-2 text-[13px] text-gray-600 hover:text-orange-600 hover:bg-orange-50 active:bg-orange-100 border border-gray-200 hover:border-orange-200 rounded-lg transition-all font-semibold shadow-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20" aria-label="Buka riwayat">
+          <svg class="w-4 h-4 md:w-[18px] md:h-[18px] shrink-0 text-orange-500 transition-transform duration-300 group-hover:-rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="hidden md:inline tracking-wide">Riwayat</span>
+        </button>
+      </div>
+
     </div>
 
     <!-- Search Bar -->
@@ -245,7 +264,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             <!-- Max Products -->
             <div class="flex items-center gap-1 px-2 py-1.5 rounded-md border border-gray-200 bg-gray-50 flex-shrink-0 whitespace-nowrap w-[72px] md:w-auto">
               <span class="text-xs text-gray-400 select-none hidden md:inline">maks</span>
-              <input type="number" id="max_products" value="3" min="1" max="100"
+              <input type="number" id="max_products" value="3" min="1" max="75"
                 class="w-full bg-transparent text-gray-700 text-sm md:text-center text-left outline-none font-medium" title="Max produk" style="-moz-appearance: textfield;"/>
             </div>
 
