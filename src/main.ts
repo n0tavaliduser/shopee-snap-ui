@@ -536,7 +536,7 @@ function renderFieldToggles() {
     const active = state.visibleFields.has(key)
     const chip = document.createElement('button')
     chip.type = 'button'
-    chip.className = `px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-400 border-gray-200 hover:border-orange-400'}`
+    chip.className = `px-2.5 py-1 rounded-md text-sm font-medium border transition-all ${active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-400 border-gray-200 hover:border-orange-400'}`
     chip.textContent = label
     chip.addEventListener('click', () => {
       if (state.visibleFields.has(key)) {
@@ -734,7 +734,7 @@ form.addEventListener('submit', async (e) => {
     const POLL_INTERVAL_MS = 2_000
     const pollStart = Date.now()
     let warpOk = false
-    
+
     while (Date.now() - pollStart < MAX_POLL_MS) {
       try {
         const controller = new AbortController()
