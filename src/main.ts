@@ -882,7 +882,7 @@ function triggerRender() {
   const pagedData = data.slice(startIndex, startIndex + state.pageSize);
 
   if (state.viewMode === 'grid') {
-    renderGrid(pagedData, startIndex);
+    renderGrid(pagedData);
   } else {
     renderTable(pagedData, startIndex);
   }
@@ -925,7 +925,7 @@ function renderPaginationControls(totalItems: number, totalPages: number) {
   }
 }
 
-function renderGrid(products: Product[], startIndex: number) {
+function renderGrid(products: Product[]) {
   const showImg = state.visibleFields.has('img')
   const showName = state.visibleFields.has('name')
   const showPrice = state.visibleFields.has('price')
