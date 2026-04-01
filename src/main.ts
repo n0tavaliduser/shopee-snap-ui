@@ -719,6 +719,56 @@ form.addEventListener('submit', async (e) => {
       url.searchParams.set('fields', activeCanonicals.join(','))
     }
 
+    // ─── Phase 1: Rotate IP ─────────────────────────────────────────────────
+    btnLabel.textContent = 'Merotasi IP...'
+    showProgressToast({ status: 'Merotasi IP via CloudFlare WARP...', percent: 2, eta: '30s' })
+    try {
+      await fetch(`${baseUrl}/rotate-ip`, { method: 'POST' })
+    } catch (_) {
+      // Jika endpoint tidak ada / WARP tidak terinstall, silently skip
+    }
+
+    // ─── Phase 2: Poll WARP status sampai connected ─────────────────────────
+    btnLabel.textContent = 'Cek Koneksi...'
+    const MAX_POLL_MS = 90_000
+    const POLL_INTERVAL_MS = 2_000
+    const pollStart = Date.now()
+    let warpOk = false
+    
+    while (Date.now() - pollStart < MAX_POLL_MS) {
+      try {
+        const statusRes = await fetch(`${baseUrl}/warp-status`)
+        const statusJson = await statusRes.json()
+        const { connection_state, current_ip, rotating } = statusJson
+        
+        const elapsed = Math.round((Date.now() - pollStart) / 1000)
+        const etaSec = Math.max(5, 30 - elapsed)
+        
+        if (rotating) {
+          showProgressToast({ status: `Menunggu rotasi IP selesai... (${elapsed}s)`, percent: 5, eta: `${etaSec}s` })
+        } else if (connection_state === 'connected') {
+          showProgressToast({ status: `Koneksi WARP stabil · IP: ${current_ip}`, percent: 10, eta: '2s' })
+          warpOk = true
+          break
+        } else {
+          showProgressToast({ status: `Menunggu koneksi WARP... (${elapsed}s)`, percent: 5, eta: `${etaSec}s` })
+        }
+      } catch (_) {
+        // Endpoint tidak tersedia, skip polling dan lanjutkan saja
+        warpOk = true
+        break
+      }
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+    }
+
+    if (!warpOk) {
+      // Timeout: tetap lanjut scrape, hanya log warning
+      console.warn('WARP polling timeout, melanjutkan scrape tanpa konfirmasi koneksi.')
+    }
+
+    // ─── Phase 3: Mulai Scraping ─────────────────────────────────────────────
+    btnLabel.textContent = 'Scraping...'
+
     const eventSource = new EventSource(url.toString())
 
     function showError(msg: string) {
